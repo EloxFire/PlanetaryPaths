@@ -3,25 +3,27 @@ from tkinter import messagebox, font
 from tkcalendar import DateEntry
 import requests
 
+
 def valider_date():
     selected_date = cal.get_date()
     selected_planet = planet_var.get()
+    display_data(message="Recherche en cours...")
     if selected_date and selected_planet:
-        display_data(message="Chargement...")
         url = "https://ssp.imcce.fr/webservices/miriade/api/ephemph.php"
         querystring = {
             "-name": f"p:{selected_planet}",
             "-ep": selected_date.strftime("%Y-%m-%d"),
             "-mime": "json",
+            "-output": "--coord(ec)",
             "-observer": "@0"  # BARYCENTRE DU SYSTEME SOLAIRE
         }
-
         print(f"Appel à l'API: {url}")
 
         try:
             response = requests.request("GET", url, params=querystring)
             if response.status_code == 200:
                 data = response.json()
+                print(data)
                 display_data(data=data)
             else:
                 display_data(message=f"Une erreur est survenue : {response.status_code}: {response.text}")
@@ -40,11 +42,17 @@ def display_data(data=None, message=None):
         elif data:
             sso_name = data.get("sso", {}).get("name", "N/A")
             sso_type = data.get("sso", {}).get("type", "N/A")
+            diameter = data.get("sso", {}).get("parameters", "N/A").get("diameter", "N/A")
+            ra = data.get("data", [{}])[0].get("Longitude", "N/A")
+            # dec = data.get("data", [{}])[0].get("DEC J2000", "N/A")
             v_mag = round(data.get("data", [{}])[0].get("V Mag", "N/A"), 1)
 
             result_text.insert(tk.END, f"Nom: {sso_name}\n")
             result_text.insert(tk.END, f"Type: {sso_type}\n")
             result_text.insert(tk.END, f"Magnitude apparente: {v_mag}\n")
+            result_text.insert(tk.END, f"Diamètre: {diameter} Km\n")
+            result_text.insert(tk.END, f"\n")
+            result_text.insert(tk.END, f"Longitude ecliptique: {ra[1:4]}°\n")
         else:
             result_text.insert(tk.END, "Aucune donnée à afficher.\n")
     else:
@@ -57,9 +65,10 @@ def changer_planete_selectionnee():
     else:
         print("Aucune planète sélectionnée")
 
+
 # Créer la fenêtre principale
 root = tk.Tk()
-root.title("PlanetaryPaths - Un projet Astroshare")
+root.title("Collège Marie Mauron - Projet club Astro")
 root.geometry("600x500")
 root.configure(bg="#000000")
 
@@ -101,6 +110,7 @@ for i, planet in enumerate(planets):
 # Ajouter un widget Text pour afficher les résultats
 result_text = tk.Text(root, bg="#2E2E2E", fg="#FFFFFF", relief="flat")
 result_text.grid(row=2, column=1, padx=20, pady=10, sticky="nsew")
+display_data(message="Sélectionnez une date et une planète.")
 
 # Ajouter un bouton valider
 valider_button = tk.Button(
@@ -115,6 +125,16 @@ valider_button = tk.Button(
     font=custom_font  # Appliquer la police personnalisée
 )
 valider_button.grid(row=3, column=0, columnspan=2, pady=20)
+
+# Ajouter un texte en bas de l'application
+footer_label = tk.Label(
+    root,
+    text="© Enzo Avagliano - 2025",
+    bg="#000000",
+    fg="#303030",
+    font=("Arial", 10)
+)
+footer_label.grid(row=4, column=0, columnspan=2, pady=10)
 
 # Configurer la grille pour que la colonne de droite s'étende
 root.grid_rowconfigure(2, weight=1)
